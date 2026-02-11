@@ -1,11 +1,13 @@
 import asyncio
 import sys
-from msvcrt import getch
+
 
 import pandas as pd
 import datetime
-
 import os
+
+from msvcrt import getch
+
 from enum import Enum
 
 from openpyxl import load_workbook
@@ -29,16 +31,18 @@ class ParsePrinterStatus(Enum):
 async def Printer_Start():
     AllPrintersData = []
     AllNotifyUsers = []
+
     global g_szPath_Data
     global g_iPageCountMax
     bNotify = False
     szNotifyMessage = False
-    LoopBreaker = 0
+    # LoopBreaker = 0
     iLowValue = 0
 
     bParcePrintes = False
     bParceUsers = False
     bSettings = False
+
     with open(g_szPath_Data, 'r', encoding="utf-8") as file:
         for text in file:
 
@@ -108,7 +112,7 @@ async def Printer_Start():
                 'ParseStatus': ParsePrinterStatus.ERROR_PARCE
                 })
 
-                LoopBreaker += 1
+            # LoopBreaker += 1
             # if (LoopBreaker > 5):
             #     break
 
@@ -122,6 +126,7 @@ async def Printer_Start():
                 if (aPrinter['IP'] == aData[0]['IP']):
                     AllPrintersData[index]['DriverName'] = aData[0]['DriverName']
                     AllPrintersData[index]['PrintCount'] = aData[0]['PrintCount']
+                    AllPrintersData[index]['PrinterStatus'] = aData[0]['PrinterStatus']
                     aData = aData[1:]
 
                     AllPrintersData[index]['ParseStatus'] = ParsePrinterStatus.SUCSEFULL
@@ -244,6 +249,7 @@ async def Printer_Start():
     PrintToExelData(AllPrintersData)
     if bNotify and len(AllNotifyUsers) > 0:
         bLow = False
+        szInterValue = 'NONE'
         if (iLowValue > 0):
             for index, aPrinter in enumerate(AllPrintersData):
                 if (AllPrintersData[index]['ParseStatus'] != ParsePrinterStatus.SUCSEFULL):
@@ -256,9 +262,21 @@ async def Printer_Start():
                         break
                 if (bLow):
                     break
+        for index, aPrinter in enumerate(AllPrintersData):
+            if (AllPrintersData[index]['ParseStatus'] == ParsePrinterStatus.ERROR_PARCE):
+                continue
+            if (AllPrintersData[index]['PrinterStatus'] != 'Режим ожидания' and
+                AllPrintersData[index]['PrinterStatus'] != 'Готово'):
+                bLow = True
+                szInterValue = AllPrintersData[index]['PrinterStatus']
+                break
+            
         if (bLow):
             for NotifyUser in AllNotifyUsers:
-                szCommand = f"msg * /server:{str(NotifyUser)} \"{str(szNotifyMessage)}\""
+                if (szInterValue != 'NONE'):
+                    szCommand = f"msg * /server:{str(NotifyUser)} \"{str(szNotifyMessage + szInterValue)}\""
+                else:
+                    szCommand = f"msg * /server:{str(NotifyUser)} \"{str(szNotifyMessage)}\""
                 os.system(szCommand)
 
 
@@ -266,11 +284,12 @@ async def GetTonersStatus(ip, community='public'):
     base_oid = '1.3.6.1.2.1.43.11.1.1'
     base_color_oid = '1.3.6.1.2.1.43.12.1.1.4.1.'
 
-    base_level_oid = f'{base_oid}.9.1.'  # prtMarkerSuppliesLevel
-    base_max_oid   = f'{base_oid}.8.1.'  # prtMarkerSuppliesMaxCapacity
-    base_desc_oid  = f'{base_oid}.6.1.'  # prtMarkerSuppliesDescription
+    base_level_oid = f'{base_oid}.9.1.'
+    base_max_oid   = f'{base_oid}.8.1.'
+    base_desc_oid  = f'{base_oid}.6.1.'
     name_oid = '1.3.6.1.2.1.43.5.1.1.16.1'
     print_oid = '1.3.6.1.2.1.43.10.2.1.4.1.1'
+    status_oid = '1.3.6.1.2.1.43.16.5.1.2.1.1'
 
     aID = [1, 2, 3, 4]
     aData = [{'IP': ip}]
@@ -286,6 +305,21 @@ async def GetTonersStatus(ip, community='public'):
         )
         szName_printer = szName_printer[3][0][1]
         aData[0]['DriverName'] = str(szName_printer)
+
+        szStatus_printer = await get_cmd(
+                SnmpEngine(),
+                CommunityData(community, mpModel=0),
+                target,
+                ContextData(),
+                ObjectType(ObjectIdentity(status_oid))
+        )
+        szStatus_printer = szStatus_printer[3][0][1].asOctets().decode('utf-8')
+        
+        szStatus_printer = szStatus_printer.lower()
+        szStatus_printer = szStatus_printer[0].upper() + szStatus_printer[1:]
+        szStatus_printer = szStatus_printer.replace(".", "")
+        szStatus_printer = szStatus_printer.strip()
+        aData[0]['PrinterStatus'] = str(szStatus_printer)
 
         iPrintCount = await get_cmd(
                 SnmpEngine(),
@@ -394,7 +428,7 @@ def PrintToExelData(AllPrintersData):
 
         g_hExel.iat[Tableindex, IP_colum] = aPrinter['IP']
         g_hExel.iat[Tableindex, Name_colum] = aPrinter['Name'] + '/' + aPrinter['DriverName']
-        g_hExel.iat[Tableindex, ParceStatus_colum] = GetParceStatusToString(aPrinter['ParseStatus'])
+        g_hExel.iat[Tableindex, ParceStatus_colum] = aPrinter['PrinterStatus']
 
         g_hExel.iat[Tableindex, PrintTimes_colum] = aPrinter['PrintCount']
         
@@ -529,13 +563,12 @@ def main():
 
     if len(szArgs) != 3:
         print("Bad arguments. Press any key to exit...")
-        junk = getch()
+        # junk = getch()
 
-        # g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
-        # g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
-        # g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
-        # asyncio.run(Printer_Start())
-
+        g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
+        g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
+        g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
+        asyncio.run(Printer_Start())
         return
 
     g_szPath_Data = str(szArgs[0])
