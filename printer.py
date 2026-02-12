@@ -266,9 +266,12 @@ async def Printer_Start():
             if (AllPrintersData[index]['ParseStatus'] == ParsePrinterStatus.ERROR_PARCE):
                 continue
             if (AllPrintersData[index]['PrinterStatus'] != 'Режим ожидания' and
-                AllPrintersData[index]['PrinterStatus'] != 'Готово'):
+                AllPrintersData[index]['PrinterStatus'] != 'Готово' and
+                AllPrintersData[index]['PrinterStatus'] != 'Пожалуйста, подождите' and
+                AllPrintersData[index]['PrinterStatus'] != 'Обработка' and
+                AllPrintersData[index]['PrinterStatus'] != 'Подождите'):
                 bLow = True
-                szInterValue = AllPrintersData[index]['PrinterStatus']
+                szInterValue = ' ' + AllPrintersData[index]['PrinterStatus']
                 break
             
         if (bLow):
@@ -563,12 +566,12 @@ def main():
 
     if len(szArgs) != 3:
         print("Bad arguments. Press any key to exit...")
-        # junk = getch()
+        junk = getch()
 
-        g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
-        g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
-        g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
-        asyncio.run(Printer_Start())
+        # g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
+        # g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
+        # g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
+        # asyncio.run(Printer_Start())
         return
 
     g_szPath_Data = str(szArgs[0])
