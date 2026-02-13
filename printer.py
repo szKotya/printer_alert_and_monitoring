@@ -109,6 +109,7 @@ async def Printer_Start():
                 'Name': aData[0],
                 'DriverName': "NO DATA",
                 'PrintCount': "NO DATA",
+                'PrinterStatus': "NO DATA",
                 'ParseStatus': ParsePrinterStatus.ERROR_PARCE
                 })
 
@@ -270,6 +271,7 @@ async def Printer_Start():
                 AllPrintersData[index]['PrinterStatus'] != 'Пожалуйста, подождите' and
                 AllPrintersData[index]['PrinterStatus'] != 'Обработка' and
                 AllPrintersData[index]['PrinterStatus'] != 'Подождите'):
+
                 bLow = True
                 szInterValue = ' ' + AllPrintersData[index]['PrinterStatus']
                 break
@@ -284,12 +286,10 @@ async def Printer_Start():
 
 
 async def GetTonersStatus(ip, community='public'):
-    base_oid = '1.3.6.1.2.1.43.11.1.1'
     base_color_oid = '1.3.6.1.2.1.43.12.1.1.4.1.'
-
-    base_level_oid = f'{base_oid}.9.1.'
-    base_max_oid   = f'{base_oid}.8.1.'
-    base_desc_oid  = f'{base_oid}.6.1.'
+    base_level_oid = '1.3.6.1.2.1.43.11.1.1.9.1.'
+    base_max_oid   = '1.3.6.1.2.1.43.11.1.1.8.1.'
+    base_desc_oid  = '1.3.6.1.2.1.43.11.1.1.6.1.'
     name_oid = '1.3.6.1.2.1.43.5.1.1.16.1'
     print_oid = '1.3.6.1.2.1.43.10.2.1.4.1.1'
     status_oid = '1.3.6.1.2.1.43.16.5.1.2.1.1'
@@ -431,7 +431,7 @@ def PrintToExelData(AllPrintersData):
 
         g_hExel.iat[Tableindex, IP_colum] = aPrinter['IP']
         g_hExel.iat[Tableindex, Name_colum] = aPrinter['Name'] + '/' + aPrinter['DriverName']
-        g_hExel.iat[Tableindex, ParceStatus_colum] = aPrinter['PrinterStatus']
+        g_hExel.iat[Tableindex, ParceStatus_colum] = GetParceStatusToString(aPrinter['PrinterStatus'])
 
         g_hExel.iat[Tableindex, PrintTimes_colum] = aPrinter['PrintCount']
         
@@ -551,12 +551,14 @@ def GetColorByProccent(iProccent):
     iBlue = 0
     return f"{((iRed & 0xFF) << 16) | ((iGreen & 0xFF) << 8) | (iBlue & 0xFF):06X}"
 
-def GetParceStatusToString(iValue):
-    if iValue == ParsePrinterStatus.SUCSEFULL:
-        return '✅'
-    if iValue == ParsePrinterStatus.ERROR_PARCE:
-        return '☐'
-    return '☒'
+def GetParceStatusToString(szString):
+    match szString:
+        case 'Режим ожидания' | 'Готово':
+            return 'Норма'
+        case 'Пожалуйста, подождите' | 'Обработка' | 'Подождите':
+            return 'В работе'  
+    return szString
+
 
 def main():
     szArgs = sys.argv[1:]
@@ -566,12 +568,12 @@ def main():
 
     if len(szArgs) != 3:
         print("Bad arguments. Press any key to exit...")
-        junk = getch()
+        # junk = getch()
 
-        # g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
-        # g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
-        # g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
-        # asyncio.run(Printer_Start())
+        g_szPath_Data = "C:\\Users\\a.vyushkov\\Desktop\\printer_data.ini"
+        g_szPath_Export = "C:\\Users\\a.vyushkov\\Desktop\\Toners.xlsx"
+        g_szPath_Script = "C:\\Users\\a.vyushkov\\Desktop"
+        asyncio.run(Printer_Start())
         return
 
     g_szPath_Data = str(szArgs[0])
