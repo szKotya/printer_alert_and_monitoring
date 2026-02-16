@@ -268,7 +268,9 @@ async def Printer_Start():
                 continue
             if (AllPrintersData[index]['PrinterStatus'] != 'Режим ожидания' and
                 AllPrintersData[index]['PrinterStatus'] != 'Готово' and
+                AllPrintersData[index]['PrinterStatus'] != 'Готов' and
                 AllPrintersData[index]['PrinterStatus'] != 'Пожалуйста, подождите' and
+                AllPrintersData[index]['PrinterStatus'] != 'Добавление тонера' and
                 AllPrintersData[index]['PrinterStatus'] != 'Обработка' and
                 AllPrintersData[index]['PrinterStatus'] != 'Подождите'):
 
@@ -553,10 +555,10 @@ def GetColorByProccent(iProccent):
 
 def GetParceStatusToString(szString):
     match szString:
-        case 'Режим ожидания' | 'Готово':
-            return 'Норма'
-        case 'Пожалуйста, подождите' | 'Обработка' | 'Подождите':
-            return 'В работе'  
+        case 'Режим ожидания' | 'Готово' | 'Готов':
+            return 'Ожидание'
+        case 'Пожалуйста, подождите' | 'Обработка' | 'Подождите' | 'Добавление тонера':
+            return 'Печатает'  
     return szString
 
 
