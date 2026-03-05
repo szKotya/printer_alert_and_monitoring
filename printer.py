@@ -266,12 +266,16 @@ async def Printer_Start():
         for index, aPrinter in enumerate(AllPrintersData):
             if (AllPrintersData[index]['ParseStatus'] == ParsePrinterStatus.ERROR_PARCE):
                 continue
+
             if (AllPrintersData[index]['PrinterStatus'] != 'Режим ожидания' and
                 AllPrintersData[index]['PrinterStatus'] != 'Готово' and
                 AllPrintersData[index]['PrinterStatus'] != 'Готов' and
                 AllPrintersData[index]['PrinterStatus'] != 'Пожалуйста, подождите' and
                 AllPrintersData[index]['PrinterStatus'] != 'Добавление тонера' and
                 AllPrintersData[index]['PrinterStatus'] != 'Обработка' and
+                AllPrintersData[index]['PrinterStatus'] != 'Загрузите бумагу в кассету 1' and
+                AllPrintersData[index]['PrinterStatus'] != 'Выход заполнен' and
+                AllPrintersData[index]['PrinterStatus'] != 'Подготовка к печати' and
                 AllPrintersData[index]['PrinterStatus'] != 'Подождите'):
 
                 bLow = True
@@ -557,8 +561,12 @@ def GetParceStatusToString(szString):
     match szString:
         case 'Режим ожидания' | 'Готово' | 'Готов':
             return 'Ожидание'
-        case 'Пожалуйста, подождите' | 'Обработка' | 'Подождите' | 'Добавление тонера':
-            return 'Печатает'  
+        case 'Обработка' | 'Добавление тонера' | 'Подготовка к печати' | 'Пожалуйста, подождите' | 'Подождите':
+            return 'Обработка'
+        case 'Загрузите бумагу в кассету 1':
+            return 'Нет бумаги'
+        case 'Лоток аппарата заполнено бумагой извлеките бумагу':
+            return 'Выход заполнен бумагой'
     return szString
 
 
